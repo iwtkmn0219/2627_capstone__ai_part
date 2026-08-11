@@ -1,4 +1,4 @@
-# 커밋 컨벤션
+# 커밋 컨벤션 & 코드 스타일
 
 이 프로젝트는 [gitmoji](https://gitmoji.dev/) 컨벤션을 사용한다.
 
@@ -74,4 +74,35 @@ footer
 모달 밖의 상하 스크롤이 움직이는 이슈 수정.
 
 resolves: #1137
+```
+
+# 코드 스타일
+
+## 포맷터
+
+- Python 코드 포맷팅은 [black](https://black.readthedocs.io/)을 사용한다.
+- 커밋 전 `black .`으로 포맷을 맞춘다.
+
+## 주석 / Docstring
+
+- Python 주석(docstring)은 [Google Style](https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings)을 따른다.
+- 모듈, 클래스, public 함수/메서드에는 docstring을 작성한다.
+- 함수 docstring은 `Args`, `Returns`, `Raises` 섹션으로 구성한다.
+
+### 예시
+
+```python
+def check_severity(text: str, threshold: float = 0.5) -> bool:
+    """입력 텍스트의 위험도를 판정한다.
+
+    Args:
+        text: 판정할 원본 텍스트.
+        threshold: 위험으로 판단할 최소 점수. 기본값 0.5.
+
+    Returns:
+        위험도가 threshold 이상이면 True, 아니면 False.
+
+    Raises:
+        ValueError: text가 빈 문자열인 경우.
+    """
 ```
