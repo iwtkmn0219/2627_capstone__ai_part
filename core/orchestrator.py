@@ -17,6 +17,8 @@ import time
 from dataclasses import dataclass, field
 from core.interfaces import (
     LLMEngine,
+    RiskLevel,
+    RiskSignal,
     SafetyChecker,
     SafetyResult,
     STTEngine,
@@ -35,7 +37,10 @@ class TurnResult:
         child_text: 아이 발화. STT 로 받아온 텍스트.
         reply_text: 안전 검사까지 통과한 최종 응답. 차단 시 대체 문장.
         audio: TTS 결과. synthesize=False 면 None.
-        escalate: True 면 보호자 알림 필요 (위기 신호 감지).
+        escalate: True 면 라우팅이 필요한 턴. **알림이 나간다는 뜻이 아니다.**
+            누구에게 알릴지는 risk 를 받은 라우터가 정하며, L4 는 알림이 아예
+            부적절할 수 있다.
+        risk: 이번 턴의 위험 신호. 라우팅 담당에 넘기는 계약 객체.
         model: 응답을 생성한 모델 이름. 생성을 건너뛴 턴은 빈 문자열. (단가 비교용)
         safety_events: 검사 판정 전량 로그.
         timings_ms: 구간별 지연(ms). {stt, safety_in, llm, tts} 키를 가질 수 있음.
@@ -46,6 +51,7 @@ class TurnResult:
     reply_text: str
     audio: bytes | None = None
     escalate: bool = False
+    risk: RiskSignal = field(default_factory=RiskSignal)
     model: str = ""
     safety_events: list[dict] = field(default_factory=list)
     timings_ms: dict = field(default_factory=dict)
@@ -104,7 +110,7 @@ class TurnOrchestrator:
         Args:
             audio: 아이 발화 오디오 원본 바이트.
             profile: 아이 프로필. name/age 는 필수, interests/voice 는 선택.
-            history: 최근 대화 이력. [(아이 발화, 인공지능 응답), ...] 형식.
+            history: 최근 대화 이력. [(역할, 텍스트), ...] 형식.
             memory: 장기기억에서 검색해온 문장들. 없으면 None.
             synthesize: False 면 TTS 를 건너뜁니다. 텍스트만 필요한 벤치마크에서 사용.
 
@@ -133,6 +139,7 @@ class TurnOrchestrator:
         # 체커가 늘어나도 지연이 누적되지 않도록 gather 사용. 가장 느린 체커만큼만 지연.
         t = time.perf_counter()
         escalate = False
+        risk = RiskSignal()
         forced_reply = None  # 값이 있으면 LLM 응답을 무시하고 해당 문장 반환
         results = await asyncio.gather(
             *(
@@ -142,8 +149,20 @@ class TurnOrchestrator:
         )
         for r in results:
             events.append(_event("input", r, child_text))
+            # 체커가 여럿이면 가장 높은 레벨을 채택한다. 같은 레벨이면 먼저 온 것을 둔다.
+            if r.level > risk.level:
+                risk = RiskSignal(
+                    level=r.level,
+                    categories=list(r.categories),
+                    ongoing=r.ongoing,
+                    alleged_target=r.alleged_target,
+                    target_certain=r.target_certain,
+                    # L4 는 지목된 어른이 누구인지 해소되기 전까지 알림을 막는다.
+                    # 라우터가 해소에 성공한 뒤에만 이 값을 뒤집을 수 있다.
+                    notify_allowed=r.level < RiskLevel.L4,
+                )
             if r.verdict is Verdict.ESCALATE:
-                # 위기 신호: 대화는 계속하되 보호자 알림 플래그 사용.
+                # 라우팅 대상 턴. 대화는 계속한다.
                 # replacement 가 없으면 LLM 응답을 그대로 사용 (침묵보다 대화 유지가 안전)
                 escalate = True
                 forced_reply = r.replacement or forced_reply
@@ -226,6 +245,7 @@ class TurnOrchestrator:
             reply_text=reply,
             audio=audio_out,
             escalate=escalate,
+            risk=risk,
             model=model,
             safety_events=events,
             timings_ms=timings,
@@ -280,6 +300,10 @@ def _event(stage: str, r, text: str, attempt: int | None = None) -> dict:
         "verdict": r.verdict.value,
         "categories": r.categories,
         "score": r.score,
+        "level": int(r.level),
+        "ongoing": r.ongoing,
+        "alleged_target": r.alleged_target,
+        "target_certain": r.target_certain,
         "latency_ms": round(r.latency_ms, 2),
         "text": text,
         "matched_text": r.matched_text,

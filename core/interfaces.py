@@ -162,6 +162,26 @@ class TTSEngine(ABC):
 # ---------------------------------------------------------------- Safety
 
 
+class RiskLevel(int, Enum):
+    """발화 하나의 심각도. 정의와 경계 예시는 capstone_documents/심각도.md 를 따릅니다.
+
+    int 를 상속하므로 부등호로 임계값을 다룰 수 있고, 그대로 JSON 에 직렬화됩니다.
+
+    Attributes:
+        L0: 중립. 감정 신호 없음.
+        L1: 일상 부정 감정. 원인이 분명하고 일과성.
+        L2: 취약 신호. 외로움/위축/자기비하/무기력.
+        L3: 안전 우려. 신체적 위해/공포/방치.
+        L4: 보호 필요. 학대/방임 정황, 자해 사고.
+    """
+
+    L0 = 0
+    L1 = 1
+    L2 = 2
+    L3 = 3
+    L4 = 4
+
+
 class Verdict(str, Enum):
     """안전 검사 판정.
 
@@ -192,6 +212,10 @@ class SafetyResult:
         replacement: REWRITE 일 때 대체할 문장.
         matched_text: 오탐 디버깅용. 판정 대상 전문은 checker 가 아니라 오케스트레이터가 로그에 남김.
         latency_ms: 검사에 걸린 시간(ms). 파이프라인 지연 예산 측정용.
+        level: 이 발화의 심각도. 출력 검사에서는 의미가 없으므로 L0.
+        ongoing: 지금 벌어지는 일인지. 레벨은 그대로 두고 응답 방식만 바꿉니다.
+        alleged_target: 아이가 가해 주체로 지목한 호칭. 원문 그대로. 없으면 None.
+        target_certain: 지목이 유일하게 특정됐는지. 라우터가 해소 실패를 판단하는 근거.
     """
 
     verdict: Verdict
@@ -201,6 +225,38 @@ class SafetyResult:
     replacement: str | None = None
     matched_text: str | None = None
     latency_ms: float = 0.0
+    level: RiskLevel = RiskLevel.L0
+    ongoing: bool = False
+    alleged_target: str | None = None
+    target_certain: bool = False
+
+
+@dataclass
+class RiskSignal:
+    """한 턴의 위험 신호. 라우팅 담당(백엔드)에 넘기는 계약 객체.
+
+    알림 대상 선정은 여기서 하지 않습니다. 등록 어른 관계 그래프가 필요하고
+    그건 우리 파트의 데이터가 아니기 때문입니다. 우리는 '무엇을 감지했는가'
+    까지만 싣고, '누구에게 알릴 것인가'는 라우터가 정합니다.
+
+    Attributes:
+        level: 승격 규칙까지 반영한 최종 심각도.
+        categories: 걸린 위험 범주 목록.
+        ongoing: 지금 벌어지는 일인지.
+        alleged_target: 지목 호칭. 정규화하지 않습니다. 지목이 없으면 None.
+        target_certain: 지목이 유일하게 특정됐는지. False 면 라우터는 해소에 실패한
+            것으로 보고 억제해야 합니다.
+        notify_allowed: 알림을 보내도 되는지. L4 는 항상 False 이며, 라우터가 지목
+            해소에 성공한 뒤에만 뒤집을 수 있습니다. 신호가 유실되거나 필드를 읽지
+            못했을 때 알림이 나가지 않도록 fail-closed 로 둡니다.
+    """
+
+    level: RiskLevel = RiskLevel.L0
+    categories: list[str] = field(default_factory=list)
+    ongoing: bool = False
+    alleged_target: str | None = None
+    target_certain: bool = False
+    notify_allowed: bool = True
 
 
 class SafetyChecker(ABC):
