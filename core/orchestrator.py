@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 from core.interfaces import (
     LLMEngine,
     SafetyChecker,
+    SafetyResult,
     STTEngine,
     TTSEngine,
     Verdict,
@@ -140,7 +141,7 @@ class TurnOrchestrator:
             )
         )
         for r in results:
-            events.append(_event("input", r))
+            events.append(_event("input", r, child_text))
             if r.verdict is Verdict.ESCALATE:
                 # 위기 신호: 대화는 계속하되 보호자 알림 플래그 사용.
                 # replacement 가 없으면 LLM 응답을 그대로 사용 (침묵보다 대화 유지가 안전)
@@ -185,13 +186,19 @@ class TurnOrchestrator:
 
                 # 벤더 자체 필터에 걸린 경우 즉시 포기.
                 if llm_out.blocked_by_vendor:
+                    # 직접 dict 를 만들면 스키마가 어긋나므로 SafetyResult 를 거친다.
                     events.append(
-                        {"stage": "output", "checker": "vendor", "verdict": "block"}
+                        _event(
+                            "output",
+                            SafetyResult(verdict=Verdict.BLOCK, checker="vendor"),
+                            llm_out.text,
+                            attempt=attempt,
+                        )
                     )
                     reply = SAFE_FALLBACK
                     break
 
-                verdict, repl = await self._screen_output(reply, events)
+                verdict, repl = await self._screen_output(reply, events, attempt)
                 if verdict is Verdict.ALLOW:
                     break
                 if repl:
@@ -225,7 +232,7 @@ class TurnOrchestrator:
             tokens=tokens,
         )
 
-    async def _screen_output(self, text: str, events: list[dict]):
+    async def _screen_output(self, text: str, events: list[dict], attempt: int = 0):
         """인공지능 응답을 출력 체커 전체에 병렬로 통과.
 
         판정은 심각도 순이 아니라 '마지막에 걸린 체커'의 값이고,
@@ -235,6 +242,7 @@ class TurnOrchestrator:
         Args:
             text: 검사할 응답 텍스트.
             events: 판정 이벤트를 누적할 리스트.
+            attempt: 몇 번째 생성 결과인지. 재생성 초안을 구분하는 데 쓴다.
 
         Returns:
             (판정, 대체 문장) 튜플. 판정이 ALLOW 가 아니면 호출부가 재생성 여부를 결정.
@@ -244,19 +252,24 @@ class TurnOrchestrator:
         )
         worst, replacement = Verdict.ALLOW, None
         for r in results:
-            events.append(_event("output", r))
+            events.append(_event("output", r, text, attempt=attempt))
             if r.verdict is not Verdict.ALLOW:
                 worst = r.verdict
                 replacement = replacement or r.replacement
         return worst, replacement
 
 
-def _event(stage: str, r) -> dict:
+def _event(stage: str, r, text: str, attempt: int | None = None) -> dict:
     """SafetyResult 를 로그/분석용 dict 로 변환.
+
+    판정 대상 원문(text)을 체커가 아니라 여기서 싣는다. 체커가 깜빡할 여지가
+    없어지고, P2 에서 붙일 분류기도 그대로 혜택을 받는다.
 
     Args:
         stage: "input" 또는 "output".
         r: 변환할 SafetyResult.
+        text: 이 판정이 실제로 검사한 원문.
+        attempt: 출력 검사의 생성 시도 회차(0부터). 입력 검사는 None.
 
     Returns:
         로그 적재용 dict.
@@ -268,4 +281,7 @@ def _event(stage: str, r) -> dict:
         "categories": r.categories,
         "score": r.score,
         "latency_ms": round(r.latency_ms, 2),
+        "text": text,
+        "matched_text": r.matched_text,
+        "attempt": attempt,
     }

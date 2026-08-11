@@ -67,12 +67,19 @@ class TurnLogger:
             session_id: 세션 식별자.
             result: 기록할 TurnResult.
             store_text: False 면 발화/응답 원문은 저장하지 않음.
+                safety_events 안의 원문에도 똑같이 적용된다.
 
         Returns:
             로그에 실제로 기록된 dict.
         """
         tok = result.tokens or {}
         cost = estimate_cost(result.model, tok.get("input", 0), tok.get("output", 0))
+
+        # 안전 이벤트도 판정 대상 원문을 싣고 있으므로 동의 설정을 함께 적용한다.
+        # 여기서 지우지 않으면 store_text=False 가 그대로 우회된다.
+        events = result.safety_events
+        if not store_text:
+            events = [{**e, "text": None, "matched_text": None} for e in events]
 
         record = {
             "turn_id": str(uuid.uuid4()),
@@ -82,7 +89,7 @@ class TurnLogger:
             "child_text": result.child_text if store_text else None,
             "reply_text": result.reply_text if store_text else None,
             "escalate": result.escalate,
-            "safety_events": result.safety_events,
+            "safety_events": events,
             "timings_ms": {k: round(v, 1) for k, v in result.timings_ms.items()},
             "total_ms": round(result.total_ms, 1),
             "model": result.model,

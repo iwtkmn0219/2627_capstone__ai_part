@@ -63,13 +63,14 @@ class RuleChecker(SafetyChecker):
         t0 = time.perf_counter()
         stage = (context or {}).get("stage", "both")
 
-        def done(verdict, cats, repl=None):
+        def done(verdict, cats, repl=None, match=None):
             """SafetyResult 생성 단축 헬퍼.
 
             Args:
                 verdict: 판정 결과. ALLOW/REWRITE/ESCALATE 등.
                 cats: 걸린 위험 범주 이름 목록.
                 repl: 원문 대신 내보낼 교체 문장. 없으면 None.
+                match: 규칙이 걸린 re.Match. 어느 표현에 걸렸는지 로그에 남긴다.
 
             Returns:
                 조립된 SafetyResult.
@@ -79,21 +80,25 @@ class RuleChecker(SafetyChecker):
                 checker=self.name,
                 categories=cats,
                 replacement=repl,
+                matched_text=match.group(0) if match else None,
                 latency_ms=(time.perf_counter() - t0) * 1000,
             )
 
         # 아이 발화에서 위기 신호 -> 대화는 계속하되 보호자 알림
-        if stage in ("input", "both") and self.DISTRESS.search(text):
-            return done(Verdict.ESCALATE, ["child_distress"], ESCALATE_REPLY)
+        if stage in ("input", "both") and (m := self.DISTRESS.search(text)):
+            return done(Verdict.ESCALATE, ["child_distress"], ESCALATE_REPLY, m)
 
         if stage in ("output", "both"):
-            if self.ISOLATION.search(text):
+            if m := self.ISOLATION.search(text):
                 return done(
-                    Verdict.REWRITE, ["guardian_isolation"], "type: 1\n" + SAFE_FALLBACK
+                    Verdict.REWRITE,
+                    ["guardian_isolation"],
+                    "type: 1\n" + SAFE_FALLBACK,
+                    m,
                 )
-            if self.UNSAFE_ADVICE.search(text):
+            if m := self.UNSAFE_ADVICE.search(text):
                 return done(
-                    Verdict.REWRITE, ["unsafe_advice"], "type: 2\n" + SAFE_FALLBACK
+                    Verdict.REWRITE, ["unsafe_advice"], "type: 2\n" + SAFE_FALLBACK, m
                 )
 
         return done(Verdict.ALLOW, [])
@@ -133,13 +138,13 @@ class ReadabilityChecker(SafetyChecker):
         sentences = [s for s in re.split(r"[.!?~]\s*", text) if s.strip()]
 
         too_long = len(sentences) > self.max_sentences
-        too_dense = any(len(s) > self.max_chars for s in sentences)
+        over = [s for s in sentences if len(s) > self.max_chars]
 
-        verdict = Verdict.REWRITE if (too_long or too_dense) else Verdict.ALLOW
+        verdict = Verdict.REWRITE if (too_long or over) else Verdict.ALLOW
         cats = []
         if too_long:
             cats.append("too_many_sentences")
-        if too_dense:
+        if over:
             cats.append("sentence_too_long")
 
         return SafetyResult(
@@ -148,6 +153,8 @@ class ReadabilityChecker(SafetyChecker):
             categories=cats,
             # REWRITE 지만 교체문이 아니라 '재생성 요청' 신호로 사용.
             replacement=None,
+            # 길이를 넘긴 첫 문장. 임계값을 조정할 때 무엇이 걸렸는지 보려고 남긴다.
+            matched_text=over[0] if over else None,
             latency_ms=(time.perf_counter() - t0) * 1000,
         )
 

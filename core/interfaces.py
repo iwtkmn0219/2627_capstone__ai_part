@@ -190,6 +190,7 @@ class SafetyResult:
         categories: 위반 카테고리 목록.
         score: 분류기 점수. 룰 기반 checker 는 None.
         replacement: REWRITE 일 때 대체할 문장.
+        matched_text: 오탐 디버깅용. 판정 대상 전문은 checker 가 아니라 오케스트레이터가 로그에 남김.
         latency_ms: 검사에 걸린 시간(ms). 파이프라인 지연 예산 측정용.
     """
 
@@ -198,6 +199,7 @@ class SafetyResult:
     categories: list[str] = field(default_factory=list)
     score: float | None = None
     replacement: str | None = None
+    matched_text: str | None = None
     latency_ms: float = 0.0
 
 
