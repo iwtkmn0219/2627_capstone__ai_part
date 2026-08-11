@@ -134,7 +134,9 @@ class ReadabilityChecker(SafetyChecker):
             판정 결과를 담은 SafetyResult.
         """
         t0 = time.perf_counter()
-        sentences = [s for s in re.split(r"[.!?~]\s*", text) if s.strip()]
+        # 개행도 문장 구분자로 본다. 문장부호 없이 줄바꿈만으로 나열한 응답이
+        # 한 문장으로 묶여 문장 수 상한을 통과하는 것을 막는다.
+        sentences = [s for s in re.split(r"[.!?~\n]\s*", text) if s.strip()]
 
         too_long = len(sentences) > self.max_sentences
         over = [s for s in sentences if len(s) > self.max_chars]
