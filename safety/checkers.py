@@ -51,15 +51,17 @@ class RuleChecker(SafetyChecker):
     async def check(self, text: str, *, context: dict | None = None) -> SafetyResult:
         """정규식 규칙으로 위험 표현을 검사.
 
+        stage 를 주지 않으면 "both" 로 보고 입력/출력 규칙을 모두 적용한다.
+
         Args:
             text: 검사 대상 문장. 아이 발화 또는 인공지능 응답.
-            context: 부가 정보 dict. "stage" 키로 "input"/"output" 구분, 없으면 "output".
+            context: 부가 정보 dict. "stage" 키로 "input"/"output" 구분. 생략하면 "both".
 
         Returns:
             판정 결과를 담은 SafetyResult.
         """
         t0 = time.perf_counter()
-        stage = (context or {}).get("stage", "output")
+        stage = (context or {}).get("stage", "both")
 
         def done(verdict, cats, repl=None):
             """SafetyResult 생성 단축 헬퍼.
@@ -81,10 +83,10 @@ class RuleChecker(SafetyChecker):
             )
 
         # 아이 발화에서 위기 신호 -> 대화는 계속하되 보호자 알림
-        if stage == "input" and self.DISTRESS.search(text):
+        if stage in ("input", "both") and self.DISTRESS.search(text):
             return done(Verdict.ESCALATE, ["child_distress"], ESCALATE_REPLY)
 
-        if stage == "output":
+        if stage in ("output", "both"):
             if self.ISOLATION.search(text):
                 return done(
                     Verdict.REWRITE, ["guardian_isolation"], "type: 1\n" + SAFE_FALLBACK

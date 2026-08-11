@@ -35,6 +35,7 @@ class TurnResult:
         reply_text: 안전 검사까지 통과한 최종 응답. 차단 시 대체 문장.
         audio: TTS 결과. synthesize=False 면 None.
         escalate: True 면 보호자 알림 필요 (위기 신호 감지).
+        model: 응답을 생성한 모델 이름. 생성을 건너뛴 턴은 빈 문자열. (단가 비교용)
         safety_events: 검사 판정 전량 로그.
         timings_ms: 구간별 지연(ms). {stt, safety_in, llm, tts} 키를 가질 수 있음.
         tokens: {input, output, cached} 토큰 수.
@@ -44,6 +45,7 @@ class TurnResult:
     reply_text: str
     audio: bytes | None = None
     escalate: bool = False
+    model: str = ""
     safety_events: list[dict] = field(default_factory=list)
     timings_ms: dict = field(default_factory=dict)
     tokens: dict = field(default_factory=dict)
@@ -152,7 +154,7 @@ class TurnOrchestrator:
         # 입력 검사에서 강제 응답이 정해졌으면(BLOCK, 또는 replacement 를 준 ESCALATE) 생성 스킵
         # 어차피 버릴 응답에 토큰과 지연을 쓸 이유가 없음
         # ESCALATE 이면서 replacement 가 없는 경우는 forced_reply 가 None 이므로 정상 생성
-        reply, tokens = "", {}
+        reply, tokens, model = "", {}, ""
         if forced_reply is None:
             dynamic = build_dynamic_context(
                 child_name=profile["name"],
@@ -178,6 +180,7 @@ class TurnOrchestrator:
                     "output": llm_out.output_tokens,
                     "cached": llm_out.raw.get("cached_tokens", 0),
                 }
+                model = llm_out.model
                 reply = llm_out.text or SAFE_FALLBACK
 
                 # 벤더 자체 필터에 걸린 경우 즉시 포기.
@@ -216,6 +219,7 @@ class TurnOrchestrator:
             reply_text=reply,
             audio=audio_out,
             escalate=escalate,
+            model=model,
             safety_events=events,
             timings_ms=timings,
             tokens=tokens,

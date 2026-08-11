@@ -24,7 +24,7 @@ from core.fakes import FakeSTT, FakeTTS
 from core.orchestrator import TurnOrchestrator
 from llm.gemini import GeminiEngine
 from safety.checkers import ReadabilityChecker, RuleChecker
-from telemetry.logger import PRICE_IN, PRICE_OUT, TurnLogger
+from telemetry.logger import TurnLogger, estimate_cost
 
 load_dotenv()
 
@@ -96,22 +96,24 @@ async def main():
             + (f" | 필터 {flags}" if flags else "")
         )
 
-    _report(rows)
+    _report(rows, llm.model)
 
 
-def _report(rows: list[dict]):
+def _report(rows: list[dict], model: str):
     """턴별 측정치를 모아 지연/토큰/비용 리포트를 출력.
 
     Args:
         rows: 턴별 {llm_ms, in, out, cached} 딕셔너리 리스트.
+        model: 비용 계산에 사용할 모델 이름.
     """
     lat = [r["llm_ms"] for r in rows]
     total_in = sum(r["in"] for r in rows)
     total_out = sum(r["out"] for r in rows)
     total_cached = sum(r["cached"] for r in rows)
-    cost = (total_in * PRICE_IN + total_out * PRICE_OUT) / 1_000_000
+    cost = estimate_cost(model, total_in, total_out)
 
     print("\n" + "=" * 52)
+    print(f"모델             : {model}")
     print(f"턴 수            : {len(rows)}")
     print(f"LLM 지연 평균    : {statistics.mean(lat):.0f}ms")
     print(f"LLM 지연 중앙값  : {statistics.median(lat):.0f}ms")
