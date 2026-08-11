@@ -1,6 +1,10 @@
 google-genai>=1.0.0
 httpx>=0.27
 python-dotenv>=1.0
+
+# 테스트 (python -m pytest)
+pytest>=8.0
+
 # P2 이후 (안전 분류기 학습용)
 # transformers>=4.44
 # torch

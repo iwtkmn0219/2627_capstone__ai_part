@@ -20,7 +20,19 @@ telemetry/logger.py   P3 평가 + 학부모 대시보드용 로그
 ```bash
 pip install -r requirements.txt
 python demo.py          # API 키 없이 안전 필터 검증
+python -m pytest        # 심각도 라벨링 + 안전 불변식 테스트
 ```
+
+## 테스트
+
+```
+tests/test_severity.py           심각도.md 종합 예시 표의 실행 가능한 사본
+tests/test_safety_invariants.py  깨지면 실제 피해가 되는 항목만 모은 것
+```
+
+`test_safety_invariants.py` 는 일반 회귀 테스트가 아닙니다. L4(보호 필요) 진술이
+학부모 대시보드 로그에 남지 않는지, L4 응답이 보호자를 지목해 권하지 않는지,
+알림이 fail-closed 인지를 고정합니다. 여기가 빨간불이면 다른 건 보지 마세요.
 
 ## 설계 규칙 (지키지 않으면 나중에 비쌉니다)
 
