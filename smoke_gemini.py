@@ -102,7 +102,12 @@ async def main():
             }
         )
 
-        flags = [e["checker"] for e in result.safety_events if e["verdict"] != "allow"]
+        flags = [
+            f"{e['checker']}:{e['verdict']}"
+            + (f"({', '.join(e['categories'])})" if e["categories"] else "")
+            for e in result.safety_events
+            if e["verdict"] != "allow"
+        ]
         mark = "OK" if int(risk.level) == expected else "XX"
         print(f"\n[{i:02d}] 아이 : {utt}")
         print(f"     앵쵸 : {result.reply_text}")

@@ -295,14 +295,14 @@ class RuleChecker(SafetyChecker):
             return SafetyResult(
                 verdict=Verdict.REWRITE,
                 categories=["guardian_isolation"],
-                replacement="type: 1\n" + SAFE_FALLBACK,
+                replacement=SAFE_FALLBACK,
                 matched_text=m.group(0),
             )
         if m := self.UNSAFE_ADVICE.search(text):
             return SafetyResult(
                 verdict=Verdict.REWRITE,
                 categories=["unsafe_advice"],
-                replacement="type: 2\n" + SAFE_FALLBACK,
+                replacement=SAFE_FALLBACK,
                 matched_text=m.group(0),
             )
         return None

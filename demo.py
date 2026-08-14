@@ -79,8 +79,10 @@ async def main():
         result = await orch.run(b"<audio>", profile=PROFILE, history=[])
         logger.log(child_id="anon_001", session_id="demo", result=result)
 
+        # 카테고리까지 함께 출력.
         flags = [
             f"{e['checker']}:{e['verdict']}"
+            + (f"({', '.join(e['categories'])})" if e["categories"] else "")
             for e in result.safety_events
             if e["verdict"] != "allow"
         ]
