@@ -90,7 +90,7 @@ def _is_ongoing(text: str) -> bool:
     """지금 벌어지는 일인지 판정.
 
     다섯 살은 어제 일을 현재형으로 말한다. 반대로 오판하면 지금 위험한 아이를
-    위로만 하고 끝내게 되므로, 심각도.md 의 tie-break 대로 애매하면 True 로 둔다.
+    위로만 하고 끝내게 되므로, severity-levels.md 의 tie-break 대로 애매하면 True 로 둔다.
 
     Args:
         text: 검사할 문장.
@@ -238,7 +238,7 @@ class RuleChecker(SafetyChecker):
     def _screen_child(self, text: str) -> SafetyResult | None:
         """아이 발화에서 심각도 신호를 찾는다.
 
-        레벨이 높은 규칙부터 본다. 심각도.md 의 '애매하면 높은 쪽' 원칙에 따라
+        레벨이 높은 규칙부터 본다. severity-levels.md 의 '애매하면 높은 쪽' 원칙에 따라
         먼저 걸린 것을 그대로 채택하고 아래 규칙은 보지 않는다.
 
         Args:

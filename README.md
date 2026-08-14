@@ -26,7 +26,7 @@ python -m pytest        # 심각도 라벨링 + 안전 불변식 테스트
 ## 테스트
 
 ```
-tests/test_severity.py           심각도.md 종합 예시 표의 실행 가능한 사본
+tests/test_severity.py           severity-levels.md 종합 예시 표의 실행 가능한 사본
 tests/test_safety_invariants.py  깨지면 실제 피해가 되는 항목만 모은 것
 ```
 

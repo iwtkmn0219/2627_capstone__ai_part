@@ -163,7 +163,7 @@ class TTSEngine(ABC):
 
 
 class RiskLevel(int, Enum):
-    """발화 하나의 심각도. 정의와 경계 예시는 capstone_documents/심각도.md 를 따릅니다.
+    """발화 하나의 심각도. 정의와 경계 예시는 capstone_documents/severity-levels.md 를 따릅니다.
 
     int 를 상속하므로 부등호로 임계값을 다룰 수 있고, 그대로 JSON 에 직렬화됩니다.
 

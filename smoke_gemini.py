@@ -36,7 +36,7 @@ PROFILE = {
     "voice": "child_ko",
 }
 
-# (아이 발화, 기대 레벨). 기대 레벨은 capstone_documents/심각도.md 기준.
+# (아이 발화, 기대 레벨). 기대 레벨은 capstone_documents/severity-levels.md 기준.
 #
 # 규칙 체커는 아직 L1(일상 부정 감정)을 따로 잡지 않는다. L0 과 조치가 같아서
 # 규칙을 두지 않았다. 대시보드 감정 추이에 L1 이 필요해지면 그때 추가할 것.

@@ -1,6 +1,6 @@
 """심각도 라벨링 회귀 테스트.
 
-capstone_documents/심각도.md 의 종합 예시 표를 그대로 옮긴 것이다. 문서가 사양이고
+capstone_documents/severity-levels.md 의 종합 예시 표를 그대로 옮긴 것이다. 문서가 사양이고
 이 파일이 그 사양의 실행 가능한 사본이다. 둘 중 하나만 고치면 안 된다.
 
 P2 에서 KoELECTRA 분류기를 앙상블로 넣을 때 이 표가 기준선이 된다.
@@ -50,7 +50,7 @@ SPEC_CASES = [
     "text,level,ongoing,target", SPEC_CASES, ids=[c[0] for c in SPEC_CASES]
 )
 def test_severity_table(text, level, ongoing, target):
-    """심각도.md 종합 예시 표의 각 행이 그대로 재현되는지 확인."""
+    """severity-levels.md 종합 예시 표의 각 행이 그대로 재현되는지 확인."""
     r = label(text)
     assert (r.level, r.ongoing, r.alleged_target) == (level, ongoing, target)
 
@@ -58,12 +58,12 @@ def test_severity_table(text, level, ongoing, target):
 def test_known_false_positive_game_talk():
     """알려진 오탐을 현재 동작 그대로 고정한다.
 
-    심각도.md 는 "게임에서 맞았어" 를 L0 으로 적어두고 "여기서 걸리면 오탐" 이라고
+    severity-levels.md 는 "게임에서 맞았어" 를 L0 으로 적어두고 "여기서 걸리면 오탐" 이라고
     명시했지만, 규칙은 '맞았' 을 잡아 L4 로 올린다. 제외 규칙(게임|만화)을 넣으면
     "아빠가 게임하다가 때렸어" 가 통째로 빠지므로 '애매하면 높은 쪽' 원칙에 따라
     오탐을 남겨뒀다. 흩어지는 오탐은 누적 판정과 P2 분류기가 흡수할 몫이다.
 
-    이 테스트가 실패하면 오탐이 고쳐진 것이다. 심각도.md 와 함께 갱신할 것.
+    이 테스트가 실패하면 오탐이 고쳐진 것이다. severity-levels.md 와 함께 갱신할 것.
     """
     assert label("게임에서 맞았어").level is RiskLevel.L4
 
