@@ -22,9 +22,7 @@ import time
 
 from core.interfaces import RiskLevel, SafetyChecker, SafetyResult, Verdict
 
-SAFE_FALLBACK = (
-    "민준아 뭐가 잘못됐다 그지?\n음… 난 잘 모르겠어! 우리 다른 이야기 해볼까?"
-)
+SAFE_FALLBACK = "음… 난 잘 모르겠어! 우리 다른 이야기 해볼까?"
 
 # L3 이면서 지금 벌어지는 일. 대화를 이어가는 것보다 곁의 어른에게 연결하는 게 먼저다.
 URGENT_ADULT_REPLY = "옆에 어른 있어? 가서 보여주자.\n앵쵸는 여기서 기다릴게."
