@@ -9,7 +9,7 @@ core/interfaces.py    모든 컴포넌트의 추상 인터페이스 (여기가 �
 core/orchestrator.py  턴 실행 + 지연 계측
 core/fakes.py         API 키 없이 도는 가짜 구현체
 stt/clova.py          CLOVA Speech
-llm/gemini.py         Gemini 2.5 Flash-Lite
+llm/gemini.py         Gemini 3.1 Flash-Lite
 safety/checkers.py    3단 안전 계층
 context/persona.py    앵쵸 페르소나(static) + 개인화 컨텍스트(dynamic)
 telemetry/logger.py   P3 평가 + 학부모 대시보드용 로그
@@ -22,6 +22,17 @@ pip install -r requirements.txt
 python demo.py          # API 키 없이 안전 필터 검증
 python -m pytest        # 심각도 라벨링 + 안전 불변식 테스트
 ```
+
+여기까지는 키가 필요 없음.
+실제 벤더를 호출하려면 `.env.example` 을 `.env` 로 복사하고 값을 채울 것.
+
+```bash
+python smoke_gemini.py  # Gemini 실측 (지연/토큰/비용/캐시)
+python list_models.py   # 사용 가능한 모델 목록
+```
+
+`.env` 로드는 진입점 스크립트의 책임입니다. 라이브러리(`llm/`, `stt/`)는 환경변수를
+읽기만 하므로, 새 진입점을 만들면 `load_dotenv()` 를 직접 호출하세요.
 
 ## 테스트
 

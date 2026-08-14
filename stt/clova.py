@@ -4,6 +4,10 @@ CLOVA Speech STT 구현체 (단문 인식 REST).
 실시간 스트리밍(gRPC)은 P1 후반에 붙이되, 인터페이스는 지금 고정.
 keyword boosting 은 아동 발화 + 캐릭터 고유명사에 특히 효과가 커서
 초기부터 넣어두는 걸 권장.
+
+이 모듈은 환경변수를 읽기만 하고 .env 를 로드하지 않음.
+필요한 키는 CLOVA_SPEECH_INVOKE_URL, CLOVA_SPEECH_SECRET 두 개.
+.env.example 참고.
 """
 
 from __future__ import annotations
