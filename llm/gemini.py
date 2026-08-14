@@ -31,7 +31,10 @@ from core.interfaces import LLMEngine, LLMResult
 #   gemini-3.1-flash-lite  $0.125/$0.750  (종료 예정 2027-05-07)
 #   gemini-3.5-flash-lite  $0.30 /$2.50   (종료일 미발표)
 # 캡스톤 종료가 2027-06 이므로, 출시 전 반드시 재검증할 것.
-DEFAULT_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.1-flash-lite")
+#
+# get(키, 기본값) 이 아니라 or 로 받는다. 환경변수가 빈 문자열로 설정되어 있으면
+# 키가 '존재'하므로 기본값이 발동하지 않고, 빈 모델명이 그대로 API 로 넘어간다.
+DEFAULT_MODEL = os.environ.get("GEMINI_MODEL") or "gemini-3.1-flash-lite"
 
 _CHILD_SAFETY = [
     types.SafetySetting(category=c, threshold="BLOCK_LOW_AND_ABOVE")
